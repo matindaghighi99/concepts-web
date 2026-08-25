@@ -258,9 +258,29 @@
         0 2px 4px rgba(10, 7, 4, 0.45),
         0 12px 24px -8px rgba(10, 7, 4, 0.6),
         0 26px 48px -20px rgba(150, 96, 26, 0.5);
-      transition:
-        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      /* transform only: it composites on the GPU. Transitioning the
+         box-shadow stack meant re-blurring six shadows on the CPU for
+         half a second on every hover — mouse-only cost, so iOS never
+         paid it but Windows did, right as the drive-in starts. */
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* The hover glow lives on its own layer and cross-fades in via
+       opacity (composited) instead of interpolating shadow geometry.
+       Outset shadows paint outside the box, so z-index -1 behind the
+       bezel still shows them; isolation on .cta keeps -1 contained. */
+    .cta::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow:
+        0 18px 32px -10px rgba(10, 7, 4, 0.62),
+        0 34px 60px -22px rgba(178, 116, 32, 0.62);
     }
 
     /* specular sheen across the bezel */
@@ -280,16 +300,8 @@
       transition: opacity 0.5s ease;
     }
 
-    .cta:hover {
-      transform: translateY(-2px);
-      box-shadow:
-        0 1px 0 rgba(255, 236, 200, 0.22) inset,
-        0 -1px 0 rgba(0, 0, 0, 0.65) inset,
-        0 0 0 1px rgba(255, 226, 178, 0.15),
-        0 2px 4px rgba(10, 7, 4, 0.45),
-        0 18px 32px -10px rgba(10, 7, 4, 0.62),
-        0 34px 60px -22px rgba(178, 116, 32, 0.62);
-    }
+    .cta:hover { transform: translateY(-2px); }
+    .cta:hover::before { opacity: 1; }
 
     .cta:hover::after { opacity: 1; }
     .cta:active { transform: translateY(0); }
@@ -322,6 +334,34 @@
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    /* Vignette and film grain used to live inside the SVG, stacked over
+       the moving parts — so every frame's dirty region re-composited a
+       live feTurbulence filter. As track overlays they rasterize once
+       (the grain tile is a tiny SVG image the browser caches) and the
+       per-frame repaint only touches actual scene geometry. */
+    .cta__track::before,
+    .cta__track::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .cta__track::before {
+      z-index: 1;
+      background: radial-gradient(
+        ellipse 72% 72% at 50% 48%,
+        rgba(58, 42, 18, 0) 50%,
+        rgba(58, 42, 18, 0.3) 100%
+      );
+    }
+
+    .cta__track::after {
+      z-index: 2;
+      opacity: 0.17;
+      background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><filter id='n' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.14 0 0 0 0 0.11 0 0 0 0 0.07 1 0 0 0 0'/></filter><rect width='128' height='128' filter='url(%23n)'/></svg>");
     }
 
     .cta__label {
@@ -414,7 +454,10 @@
     .spoke { fill: none; stroke: #6f6558; stroke-width: 1.1; stroke-linecap: round; }
 
     #boxShadow { transition: opacity 0.3s ease; }
-    #ground, #van, #vanBody, #box, #door, .wheel { will-change: transform; }
+    /* No will-change here: these nodes animate via the SVG transform
+       ATTRIBUTE, which is repainted rather than composited, so layer
+       promotion buys nothing — and on desktop Chromium it has caused
+       stale/blank-layer glitches on inner SVG elements. */
     /* ============ end order button ============ */
 
     .fineprint {
@@ -548,18 +591,6 @@
                 <stop offset="1" stop-color="#ff6a45" stop-opacity="0" />
               </radialGradient>
 
-              <radialGradient id="vignette" cx="50%" cy="48%" r="72%">
-                <stop offset="0.5" stop-color="#3a2a12" stop-opacity="0" />
-                <stop offset="1" stop-color="#3a2a12" stop-opacity="0.3" />
-              </radialGradient>
-
-              <filter id="grain" x="0" y="0" width="100%" height="100%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch" />
-                <feColorMatrix
-                  type="matrix"
-                  values="0 0 0 0 0.14  0 0 0 0 0.11  0 0 0 0 0.07  1 0 0 0 0" />
-              </filter>
-
               <!-- the roll-up door disappears into the top of its own frame -->
               <clipPath id="bayClip" clipPathUnits="userSpaceOnUse">
                 <rect x="42" y="29" width="40" height="35" rx="2" />
@@ -653,9 +684,6 @@
                 <path d="M-9,-6.6 h18" stroke="#fff0d2" stroke-opacity="0.4" stroke-width="1.2" />
               </g>
             </g>
-
-            <rect x="0" y="0" width="342" height="100" fill="url(#vignette)" />
-            <rect x="0" y="0" width="342" height="100" filter="url(#grain)" opacity="0.17" />
           </svg>
         </span>
 
@@ -734,6 +762,7 @@
       document.getElementById("wheelA"),
       document.getElementById("wheelB"),
     ];
+    const scene = document.querySelector(".cta__scene");
 
     // --- geometry (SVG user units) ---
     const VX_START = -150;  // van fully clear of the left edge
@@ -762,7 +791,13 @@
     const DONE_AT = 4160;
     const RESET_AT = 5700;
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // The OS-level "reduce motion" accessibility flag (Windows:
+    // Settings → Accessibility → Visual effects → Animation effects;
+    // iOS: Reduce Motion). Flip HONOR_REDUCED_MOTION to true to give
+    // machines with that switch off the static cross-fade instead of
+    // the drive-in; while false, everyone gets the full animation.
+    const HONOR_REDUCED_MOTION = false;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     // Newton-Raphson cubic-bezier solver, so these curves read exactly like
     // their CSS equivalents.
@@ -845,6 +880,7 @@
     let landedAt = -1;
     let slammed = false;
     let pitch = 0, pitchV = 0, dip = 0, dipV = 0;
+    let stepsDone = 0; // fixed-timestep counter for the springs
 
     function setBox(x, y, rot, sx, sy) {
       box.setAttribute(
@@ -860,10 +896,12 @@
       slammed = false;
       landedAt = -1;
       pitch = pitchV = dip = dipV = 0;
+      stepsDone = 0;
 
       if (box.parentNode !== boxHome) boxHome.appendChild(box);
       setBox(VX_STOP + BOX_ROAD.x, BOX_ROAD.y, 0, 1, 1);
       boxShadow.style.opacity = "1";
+      scene.style.opacity = "";
 
       ground.setAttribute("transform", `translate(0 ${GY_HIDE})`);
       boxHome.setAttribute("transform", `translate(0 ${GY_HIDE})`);
@@ -903,14 +941,24 @@
       lights.setAttribute("opacity", seg(t, LIGHTS, 0, 1, easeLamp).toFixed(3));
 
       // --- suspension: pitch comes off the timeline's 2nd derivative, so
-      //     braking dips the nose and pulling away lifts it, for free ---
+      //     braking dips the nose and pulling away lifts it, for free.
+      //     The springs integrate at a fixed 60 Hz timestep: the damping
+      //     constants were tuned per-step, so stepping once per rendered
+      //     frame made a 144 Hz monitor 2.4x stiffer than a 60 Hz one and
+      //     turned the wobble nervous. ---
       const h = 16;
       const accel = (vxAt(t + h) - 2 * vx + vxAt(t - h)) / (h * h);
       const target = Math.max(-3, Math.min(3, -accel * 2600));
-      pitchV += (target - pitch) * 0.14 - pitchV * 0.3;
-      pitch += pitchV;
-      dipV += (0 - dip) * 0.16 - dipV * 0.26;
-      dip += dipV;
+      const STEP = 1000 / 60;
+      let due = Math.floor(t / STEP) - stepsDone;
+      if (due > 4) { stepsDone += due - 4; due = 4; } // drop debt after a hitch
+      while (due-- > 0) {
+        stepsDone++;
+        pitchV += (target - pitch) * 0.14 - pitchV * 0.3;
+        pitch += pitchV;
+        dipV += (0 - dip) * 0.16 - dipV * 0.26;
+        dip += dipV;
+      }
       body.setAttribute(
         "transform",
         `translate(0 ${dip.toFixed(3)}) rotate(${pitch.toFixed(3)})`
@@ -953,14 +1001,52 @@
       }
     }
 
+    // ---- reduced-motion fallback ----
+    // Reduced motion means "no travel", not "no feedback": skipping
+    // straight to the label made the button look broken on machines
+    // with the OS switch off. Instead the scene cross-fades in already
+    // delivered — van parked, door shut, lamps lit — holds, and fades
+    // back out. Opacity fades are the accepted stand-in for motion.
+    function fadeScene(from, to, dur) {
+      const start = performance.now();
+      (function step(now) {
+        const p = Math.min(1, (now - start) / dur);
+        scene.style.opacity = (from + (to - from) * easeLamp(p)).toFixed(3);
+        if (p < 1 && playing) raf = requestAnimationFrame(step);
+      })(start);
+    }
+
+    function calmPlay() {
+      idle();
+      playing = true;
+      label.dataset.state = "run";
+
+      // Compose the delivered pose directly.
+      ground.setAttribute("transform", "translate(0 0)");
+      boxHome.setAttribute("transform", "translate(0 0)");
+      van.setAttribute("transform", `translate(${VX_STOP} 0)`);
+      wheels.forEach((w) =>
+        w.setAttribute("transform", `rotate(${(VX_STOP * DEG_PER_UNIT).toFixed(3)})`)
+      );
+      lights.setAttribute("opacity", "1");
+      boxShadow.style.opacity = "0";
+      boxSlotBay.appendChild(box);
+      setBox(BOX_BAY.x, BOX_BAY.y, 0, 1, 1);
+
+      fadeScene(0, 1, 280);
+      setTimeout(() => {
+        text.textContent = "Order Completed";
+        label.dataset.state = "done";
+      }, 620);
+      setTimeout(() => fadeScene(1, 0, 280), 2300);
+      setTimeout(idle, 2650);
+    }
+
     function play() {
       if (playing) return;
 
-      if (reduce) {
-        playing = true;
-        text.textContent = "Order Completed";
-        label.dataset.state = "done";
-        setTimeout(idle, 1800);
+      if (HONOR_REDUCED_MOTION && reducedMotion.matches) {
+        calmPlay();
         return;
       }
 

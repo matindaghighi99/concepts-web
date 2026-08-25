@@ -157,7 +157,12 @@
       display: grid;
       grid-template-columns: minmax(0, 360px) 1fr;
       gap: 40px;
-      transition: grid-template-columns 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      /* gap must ride along: it drops to 0 in the processing state, and
+         left untransitioned it snapped, shoving the form 40px sideways
+         on the first frame of the collapse */
+      transition:
+        grid-template-columns 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        gap 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .checkout.is-processing .checkout__body {
@@ -168,6 +173,10 @@
     @media (max-width: 720px) {
       .checkout__body { grid-template-columns: 1fr; }
       .checkout.is-processing .checkout__body { grid-template-columns: 1fr; }
+      /* single-column: the faded form still occupied its full height,
+         leaving a huge blank band under the status. No collapse
+         animation runs at this width anyway, so just drop it. */
+      .checkout.is-processing .pay-col { display: none; }
     }
 
     /* -------- left column: card + summary -------- */
@@ -175,9 +184,14 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .checkout.is-processing .card-col { padding-top: 8vh; }
+    /* was padding-top: 8vh — a layout property with no transition, so
+       the card teleported down before the columns started moving.
+       translateY animates on the compositor and rides the same curve
+       as the collapse. */
+    .checkout.is-processing .card-col { transform: translateY(8vh); }
 
     .card-slot {
       position: relative;
@@ -198,17 +212,22 @@
       border-radius: 18px;
       background: transparent;
       opacity: 0;
-      transition: opacity 0.4s ease, box-shadow 0.4s ease;
+      /* opacity only: interpolating the 62px-blur shadows re-blurred the
+         whole halo on the CPU for 24 frames on every keystroke near the
+         validity boundary. The shadow itself now switches instantly and
+         the fade does the easing — the colour classes stay sticky while
+         --on drops, so the fade-out keeps its shadow to fade with. */
+      transition: opacity 0.4s ease;
       pointer-events: none;
     }
 
+    .glow--on { opacity: 1; }
+
     .glow--ok {
-      opacity: 1;
       box-shadow: 0 0 26px 4px #1fb573, 0 0 62px 18px rgba(31, 181, 115, 0.55);
     }
 
     .glow--bad {
-      opacity: 1;
       box-shadow: 0 0 26px 4px #e5484d, 0 0 62px 18px rgba(229, 72, 77, 0.5);
     }
 
@@ -249,7 +268,13 @@
     }
 
     .card__face--front {
-      background: linear-gradient(135deg, #eef2ff 0%, #dbe4ff 38%, #b9c9fb 72%, #98aef4 100%);
+      background:
+        radial-gradient(130% 160% at 100% -10%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 52%),
+        linear-gradient(135deg, #f1f4ff 0%, #dde5ff 34%, #b4c6fb 68%, #8ba4f1 100%);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.5) inset,
+        0 0 0 1px rgba(255, 255, 255, 0.35) inset,
+        0 18px 40px -16px rgba(10, 15, 40, 0.5);
     }
 
     .card__face--front::before {
@@ -258,15 +283,22 @@
       inset: 0;
       background:
         radial-gradient(60% 55% at 82% 6%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 60%),
+        repeating-radial-gradient(140% 140% at 112% 128%, rgba(28, 39, 96, 0.055) 0 1px, rgba(28, 39, 96, 0) 1px 23px),
         repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.12) 0 2px, rgba(255, 255, 255, 0) 2px 14px),
         radial-gradient(rgba(20, 30, 70, 0.06) 0.6px, transparent 0.6px);
-      background-size: auto, auto, 3px 3px;
+      background-size: auto, auto, auto, 3px 3px;
       pointer-events: none;
     }
 
     .card__face--back {
       transform: rotateY(180deg);
-      background: linear-gradient(160deg, #232a44 0%, #171c30 60%, #12162a 100%);
+      background:
+        radial-gradient(120% 90% at 88% -6%, rgba(124, 147, 255, 0.14) 0%, rgba(124, 147, 255, 0) 55%),
+        linear-gradient(160deg, #242c48 0%, #171c30 58%, #101426 100%);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.14) inset,
+        0 0 0 1px rgba(255, 255, 255, 0.07) inset,
+        0 18px 40px -16px rgba(10, 15, 40, 0.5);
     }
 
     .card__face--back::before {
@@ -275,10 +307,52 @@
       inset: 0;
       background:
         radial-gradient(55% 45% at 20% 90%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 60%),
+        repeating-radial-gradient(150% 150% at -14% 130%, rgba(255, 255, 255, 0.035) 0 1px, rgba(255, 255, 255, 0) 1px 26px),
         radial-gradient(rgba(255, 255, 255, 0.05) 0.6px, transparent 0.6px);
-      background-size: auto, 3px 3px;
+      background-size: auto, auto, 3px 3px;
       pointer-events: none;
     }
+
+    .card__watermark {
+      position: absolute;
+      top: 50%;
+      right: -13%;
+      width: 60%;
+      transform: translateY(-50%);
+      color: #1c2760;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+
+    /* signature: a specular sheen that tracks the pointer, riding the
+       same rAF the tilt writes into (--sx/--sy are unitless percents).
+       It moves by transform only, so the sweep is composited and never
+       repaints the face — in keeping with the Windows work above. */
+    .card__shine {
+      position: absolute;
+      left: -35%;
+      top: -35%;
+      width: 170%;
+      height: 170%;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 255, 255, 0.32) 0%,
+        rgba(255, 255, 255, 0.07) 46%,
+        rgba(255, 255, 255, 0) 72%
+      );
+      transform: translate3d(calc(var(--sx, 0) * 1%), calc(var(--sy, 0) * 1%), 0);
+      transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform;
+    }
+
+    .card__tilt.is-tracking .card__shine {
+      opacity: 1;
+      transition: opacity 0.35s ease, transform 0.08s linear;
+    }
+
+    .card__tilt.is-tracking .card__face--back .card__shine { opacity: 0.45; }
 
     .chip {
       position: absolute;
@@ -409,11 +483,14 @@
       top: 10%;
       height: 22%;
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 14%, rgba(255, 255, 255, 0) 86%, rgba(255, 255, 255, 0.05) 100%),
-        #0b0e1c;
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 16%, rgba(255, 255, 255, 0) 84%, rgba(255, 255, 255, 0.05) 100%),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0 1px, rgba(255, 255, 255, 0) 1px 4px),
+        #0a0d1a;
     }
 
-    /* an iridescent security patch, tucked beside the signature strip */
+    /* an iridescent security patch, tucked beside the signature strip.
+       Its rainbow slides with the same --sx/--sy the tilt writes, so it
+       "refracts" as the card moves under the light. */
     .hologram {
       position: absolute;
       top: 59%;
@@ -421,8 +498,10 @@
       width: 9%;
       aspect-ratio: 1;
       border-radius: 2px;
-      background: linear-gradient(135deg, #f6b9db 0%, #ffe9a8 22%, #b7f3c4 44%, #a9d8ff 66%, #d4bbff 88%, #f6b9db 100%);
-      opacity: 0.4;
+      background: linear-gradient(115deg, #f6b9db 0%, #ffe9a8 18%, #b7f3c4 38%, #a9d8ff 58%, #d4bbff 78%, #f6b9db 100%);
+      background-size: 260% 260%;
+      background-position: calc(50% + var(--sx, 0) * 1.4%) calc(50% + var(--sy, 0) * 1.4%);
+      opacity: 0.5;
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
     }
 
@@ -615,15 +694,24 @@
     .pay-col {
       min-width: 0;
       opacity: 1;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s linear 0s;
     }
 
+    /* visibility flips only after the fade completes, and flips back
+       instantly on return — without it the invisible form stayed in the
+       tab order, so keyboard users could focus fields they can't see */
     .checkout.is-processing .pay-col {
       opacity: 0;
       transform: translateX(10px);
       pointer-events: none;
       overflow: hidden;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s linear 0.35s;
     }
+
+    /* while the column animates back open, the width-locked form is
+       still wider than its track — keep it clipped until the lock lifts */
+    .checkout.is-expanding .pay-col { overflow: hidden; }
 
     .pay-col h3 {
       margin: 0 0 4px;
@@ -751,10 +839,26 @@
       box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.25) inset,
         0 10px 24px -10px rgba(59, 82, 217, 0.75);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      /* transform only — the hover glow crossfades on ::before below
+         instead of re-blurring the shadow stack on the CPU */
+      transition: transform 0.2s ease;
+      isolation: isolate;
     }
 
-    .pay-btn:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 16px 30px -10px rgba(59, 82, 217, 0.85); }
+    .pay-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      box-shadow: 0 16px 30px -10px rgba(59, 82, 217, 0.85);
+    }
+
+    .pay-btn:hover { transform: translateY(-1px); }
+    .pay-btn:hover::before { opacity: 1; }
     .pay-btn:active { transform: translateY(0); }
     .pay-btn.shake { animation: shake 0.4s; }
 
@@ -823,9 +927,20 @@
     .pill:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.28); }
     .pill--bad { color: #f4b3b5; }
 
-    @media (prefers-reduced-motion: reduce) {
-      .card-slot, .card__tilt, .card__tilt.is-tracking, .card__inner, .checkout__body, .pay-col, .glow { transition: none !important; }
-    }
+    /* Motion-free mode. Applied as a class by the script (see
+       HONOR_REDUCED_MOTION there) instead of a media query, so the same
+       flag governs CSS and JS — on Windows the OS "Animation effects"
+       switch reports prefers-reduced-motion and was freezing all of
+       this even when the site wanted it on. */
+    .reduce-motion .card-slot,
+    .reduce-motion .card__tilt,
+    .reduce-motion .card__tilt.is-tracking,
+    .reduce-motion .card__inner,
+    .reduce-motion .card__shine,
+    .reduce-motion .checkout__body,
+    .reduce-motion .card-col,
+    .reduce-motion .pay-col,
+    .reduce-motion .glow { transition: none !important; }
   </style>
 </head>
 <body>
@@ -842,7 +957,7 @@
               <path d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18.1 5.9l-1.7 1.7M7.6 16.4l-1.7 1.7M18.1 18.1l-1.7-1.7M7.6 7.6 5.9 5.9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
           </span>
-          <span class="brand__word">SABLE</span>
+          <span class="brand__word">COBALT</span>
           <span class="brand__sub">Checkout</span>
         </div>
 
@@ -875,6 +990,12 @@
             <div class="card__tilt" id="cardTilt">
               <div class="card__inner" id="cardInner">
                 <div class="card__face card__face--front">
+                  <svg class="card__watermark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.1" />
+                    <path d="M12 3v2.4M12 18.6V21M21 12h-2.4M5.4 12H3M18.1 5.9l-1.7 1.7M7.6 16.4l-1.7 1.7M18.1 18.1l-1.7-1.7M7.6 7.6 5.9 5.9" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
+                    <circle cx="12" cy="12" r="8.7" stroke="currentColor" stroke-width="0.45" opacity="0.7" />
+                    <circle cx="12" cy="12" r="10.6" stroke="currentColor" stroke-width="0.3" opacity="0.45" />
+                  </svg>
                   <svg class="chip" viewBox="0 0 30 22">
                     <defs>
                       <linearGradient id="chipGrad" x1="0" y1="0" x2="30" y2="22" gradientUnits="userSpaceOnUse">
@@ -884,14 +1005,15 @@
                       </linearGradient>
                     </defs>
                     <rect x="0.6" y="0.6" width="28.8" height="20.8" rx="3.2" fill="url(#chipGrad)" stroke="#8a7748" stroke-width="0.5" />
-                    <path d="M10.2 0.6V21.4M19.8 0.6V21.4M0.6 11H29.4" stroke="#8a7748" stroke-width="0.5" opacity="0.85" />
+                    <path d="M10.2 0.6V21.4M19.8 0.6V21.4M0.6 11H29.4M0.6 6.4H10.2M19.8 6.4H29.4M0.6 15.6H10.2M19.8 15.6H29.4" fill="none" stroke="#8a7748" stroke-width="0.5" opacity="0.85" />
+                    <rect x="11.6" y="7.4" width="6.8" height="7.2" rx="1.6" fill="none" stroke="#8a7748" stroke-width="0.5" opacity="0.85" />
                     <rect x="0.6" y="0.6" width="28.8" height="7" rx="3" fill="#fff" opacity="0.25" />
                   </svg>
                   <svg class="contactless" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M8 5.5a9 9 0 0 1 0 13M12 2.2a12.5 12.5 0 0 1 0 19.6M4 9a5 5 0 0 1 0 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                   </svg>
                   <div class="card__brand">
-                    <strong>SABLE</strong>
+                    <strong>COBALT</strong>
                     <span>RESERVE</span>
                   </div>
 
@@ -908,6 +1030,7 @@
                     </div>
                     <span class="card__visa">VISA</span>
                   </div>
+                  <span class="card__shine" aria-hidden="true"></span>
                 </div>
 
                 <div class="card__face card__face--back">
@@ -916,17 +1039,18 @@
                   <div class="sig-strip">
                     <svg class="sig-strip__micro" viewBox="0 0 100 20" preserveAspectRatio="none">
                       <defs>
-                        <pattern id="microSable" width="22" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)">
-                          <text x="0" y="6" font-size="5" font-family="Inter, sans-serif" font-weight="700" fill="#a89a78" opacity="0.35">SABLE</text>
+                        <pattern id="microCobalt" width="26" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)">
+                          <text x="0" y="6" font-size="5" font-family="Inter, sans-serif" font-weight="700" fill="#8fa0c8" opacity="0.4">COBALT</text>
                         </pattern>
                       </defs>
-                      <rect width="100" height="20" fill="url(#microSable)" />
+                      <rect width="100" height="20" fill="url(#microCobalt)" />
                     </svg>
                     <span class="sig-strip__hint">Authorized Signature</span>
                     <span class="cvc-box" id="cvcDisplay"></span>
                   </div>
-                  <p class="legal">Issued by Sable Financial under license from Visa. If found, return to any Sable branch.</p>
+                  <p class="legal">Issued by Cobalt Financial under license from Visa. If found, return to any Cobalt branch.</p>
                   <span class="visa-back">VISA</span>
+                  <span class="card__shine" aria-hidden="true"></span>
                 </div>
               </div>
             </div>
@@ -967,6 +1091,7 @@
         </div>
 
         <div class="pay-col">
+          <div class="pay-col__lock" id="payLock">
           <h3>Payment details</h3>
           <p class="pay-col__sub">Enter your card to complete the transaction.</p>
 
@@ -1003,7 +1128,7 @@
 
             <div class="check-row">
               <input type="checkbox" id="saveCard" checked />
-              <label for="saveCard">Save this card for next time<small>Stored by Sable, never by the merchant</small></label>
+              <label for="saveCard">Save this card for next time<small>Stored by Cobalt, never by the merchant</small></label>
             </div>
 
             <button class="pay-btn" type="submit" id="payBtn">
@@ -1018,8 +1143,9 @@
               <span class="trust"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.6-3 8.4-7 9-4-.6-7-4.4-7-9V6l7-3Z" stroke="currentColor" stroke-width="1.6" /></svg>PCI-DSS Level 1</span>
               <span class="trust"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="10.5" width="15" height="10" rx="2" stroke="currentColor" stroke-width="1.6" /><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5" stroke="currentColor" stroke-width="1.6" /></svg>256-bit TLS</span>
             </div>
-            <p class="trust-note">Sable never stores your CVC</p>
+            <p class="trust-note">Cobalt never stores your CVC</p>
           </form>
+          </div>
         </div>
       </div>
     </div>
@@ -1055,6 +1181,7 @@
     const cvcDisplay = $("cvcDisplay");
 
     const payForm = $("payForm");
+    const payLock = $("payLock");
     const payBtn = $("payBtn");
     const formMsg = $("formMsg");
     const statusTitle = $("statusTitle");
@@ -1063,7 +1190,22 @@
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     const digitsOnly = (s) => s.replace(/\D/g, "");
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Same deal as the order page: Windows exposes its "Animation
+    // effects" accessibility switch as prefers-reduced-motion, which
+    // was freezing the flip, tilt and processing choreography on any
+    // machine with it off. Flip HONOR_REDUCED_MOTION to true to serve
+    // those machines the motion-free version; while false, everyone
+    // gets the full experience. Read live, never frozen at load.
+    const HONOR_REDUCED_MOTION = false;
+    const reducedMotionMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const calm = () => HONOR_REDUCED_MOTION && reducedMotionMQ.matches;
+    const syncCalm = () =>
+      document.documentElement.classList.toggle("reduce-motion", calm());
+    syncCalm();
+    if (reducedMotionMQ.addEventListener) {
+      reducedMotionMQ.addEventListener("change", syncCalm);
+    }
 
     // Reformats an input's value while keeping the caret sitting after the
     // same DIGIT it was after before - otherwise editing a typo mid-string
@@ -1132,11 +1274,17 @@
     }
 
     function updateGlow(digits) {
-      glow.classList.remove("glow--ok", "glow--bad");
-      if (digits.length >= 13 && luhnValid(digits)) {
-        glow.classList.add("glow--ok");
-      } else if (digits.length >= 16) {
-        glow.classList.add("glow--bad");
+      const state =
+        digits.length >= 13 && luhnValid(digits) ? "ok"
+        : digits.length >= 16 ? "bad"
+        : "";
+      // --on carries the fade; the colour class is sticky so a glow
+      // fading OUT still has a shadow to fade with (removing the colour
+      // in the same frame made it vanish instead of fade).
+      glow.classList.toggle("glow--on", state !== "");
+      if (state) {
+        glow.classList.toggle("glow--ok", state === "ok");
+        glow.classList.toggle("glow--bad", state === "bad");
       }
     }
 
@@ -1187,11 +1335,11 @@
     });
 
     // ---------- tilt ----------
-    if (!reduceMotion) {
+    {
       let tiltFrame = 0;
 
       cardSlot.addEventListener("pointermove", (e) => {
-        if (e.pointerType === "touch") return;
+        if (e.pointerType === "touch" || calm()) return;
         cardTilt.classList.add("is-tracking");
         const x = e.clientX, y = e.clientY;
         cancelAnimationFrame(tiltFrame);
@@ -1201,6 +1349,9 @@
           const py = (y - r.top) / r.height - 0.5;
           cardTilt.style.setProperty("--ry", (px * 14).toFixed(2) + "deg");
           cardTilt.style.setProperty("--rx", (-py * 10).toFixed(2) + "deg");
+          // unitless percents for the shine sweep and hologram refraction
+          cardTilt.style.setProperty("--sx", (px * 58).toFixed(1));
+          cardTilt.style.setProperty("--sy", (py * 58).toFixed(1));
         });
       });
 
@@ -1209,6 +1360,8 @@
         cardTilt.classList.remove("is-tracking");
         cardTilt.style.setProperty("--ry", "0deg");
         cardTilt.style.setProperty("--rx", "0deg");
+        cardTilt.style.setProperty("--sx", "0");
+        cardTilt.style.setProperty("--sy", "0");
       });
     }
 
@@ -1233,10 +1386,11 @@
       const cvcOk = digitsOnly(cvcInput.value).length >= 3;
       const nameOk = nameInput.value.trim().length > 1;
 
-      [panInput, expiryInput, cvcInput].forEach((el) => {
+      [nameInput, panInput, expiryInput, cvcInput].forEach((el) => {
         el.classList.remove("invalid");
         el.removeAttribute("aria-invalid");
       });
+      if (!nameOk) { nameInput.classList.add("invalid"); nameInput.setAttribute("aria-invalid", "true"); }
       if (!panOk) { panInput.classList.add("invalid"); panInput.setAttribute("aria-invalid", "true"); }
       if (!expOk) { expiryInput.classList.add("invalid"); expiryInput.setAttribute("aria-invalid", "true"); }
       if (!cvcOk) { cvcInput.classList.add("invalid"); cvcInput.setAttribute("aria-invalid", "true"); }
@@ -1246,6 +1400,8 @@
 
     // ---------- submit / processing flow ----------
     let processing = false;
+    let resultTimer = 0;
+    let unlockTimer = 0;
 
     payForm.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -1263,6 +1419,16 @@
       formMsg.textContent = "";
       processing = true;
       flip(false);
+
+      // Freeze the form's laid-out width before the columns move: the
+      // shrinking track then clips it (overflow: hidden in the
+      // processing state) instead of re-wrapping every line of text on
+      // every frame of the 0.5s collapse. That re-wrap was the main
+      // desktop cost — mobile never ran it, staying single-column.
+      clearTimeout(unlockTimer);
+      checkout.classList.remove("is-expanding");
+      payLock.style.width = payLock.offsetWidth + "px";
+
       checkout.classList.add("is-processing");
       checkout.classList.remove("is-approved", "is-declined");
       statusTitle.textContent = "Authorising with your bank";
@@ -1280,7 +1446,7 @@
         });
       });
 
-      setTimeout(() => {
+      resultTimer = setTimeout(() => {
         const declined = digits === "4000000000000002";
         if (declined) {
           checkout.classList.add("is-declined");
@@ -1294,20 +1460,41 @@
           retryBtn.textContent = "Make another payment";
         }
         processing = false;
+        // the form is hidden and the one actionable control just
+        // appeared — hand keyboard focus to it instead of leaving
+        // focus stranded on the now-invisible pay button
+        retryBtn.focus({ preventScroll: true });
       }, 1700);
     });
 
-    retryBtn.addEventListener("click", () => {
+    function resetFlow() {
+      // Cancel any in-flight "result" so it can't fire on stale digits
+      // after the user has already backed out — previously that left
+      // `processing` stuck true (dead pay button) until the old timer
+      // fired, then stamped an approve/decline from the old attempt.
+      clearTimeout(resultTimer);
+      processing = false;
       checkout.classList.remove("is-processing", "is-approved", "is-declined");
       cardSlot.style.setProperty("--grow", "1");
+      // hold the width lock through the expand so the text doesn't
+      // re-wrap mid-animation, keep it clipped meanwhile, then release
+      clearTimeout(unlockTimer);
+      checkout.classList.add("is-expanding");
+      unlockTimer = setTimeout(() => {
+        payLock.style.width = "";
+        checkout.classList.remove("is-expanding");
+      }, 550);
+    }
+
+    retryBtn.addEventListener("click", () => {
+      resetFlow();
       cvcInput.focus();
     });
 
     // ---------- demo fill pills ----------
     document.querySelectorAll(".pill").forEach((btn) => {
       btn.addEventListener("click", () => {
-        checkout.classList.remove("is-processing", "is-approved", "is-declined");
-        cardSlot.style.setProperty("--grow", "1");
+        resetFlow();
         panInput.value = formatPAN(btn.dataset.fill);
         renderPAN();
         cvcInput.focus();
