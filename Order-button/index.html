@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Page</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=Marcellus+SC&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --ink: #1a140d;
+      --ink-soft: #5f5346;
+      --ink-faint: #9a8b7a;
+      --line: #e7dccb;
+      --amber: #c08526;
+      --amber-deep: #9a6a18;
+      --ok: #4a7c52;
+
+      --sans: "Inter", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(130% 95% at 50% -12%, #3a2d1d 0%, #1c1610 44%, #0b0908 100%),
+        #0b0908;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .login-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      padding: 38px 34px 34px;
+      border-radius: 26px;
+      background: linear-gradient(180deg, #fefcf7 0%, #f7f1e4 100%);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.85) inset,
+        0 2px 5px rgba(12, 9, 6, 0.18),
+        0 34px 70px -22px rgba(8, 6, 4, 0.72);
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      text-align: center;
+      font-family: var(--serif);
+      font-size: 34px;
+      font-weight: 600;
+      font-variation-settings: "opsz" 40, "wght" 600;
+      letter-spacing: -0.018em;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+
+    .subtitle {
+      margin: 0 0 28px;
+      text-align: center;
+      font-size: 13.5px;
+      color: var(--ink-faint);
+    }
+
+    label {
+      display: block;
+      margin: 18px 0 7px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    input {
+      width: 100%;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fffdf8;
+      font-family: var(--sans);
+      font-size: 14.5px;
+      color: var(--ink);
+      outline: none;
+      box-shadow: 0 1px 2px rgba(26, 20, 13, 0.05) inset;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input::placeholder { color: #c3b6a4; }
+
+    input:focus {
+      border-color: var(--amber);
+      box-shadow:
+        0 1px 2px rgba(26, 20, 13, 0.05) inset,
+        0 0 0 3.5px rgba(192, 133, 38, 0.16);
+    }
+
+    /* ============ premium "depot van" sign-in button ============ */
+    .cta {
+      position: relative;
+      display: flex;
+      width: 100%;
+      margin-top: 26px;
+      /* % padding resolves against WIDTH on all four sides, so the inner
+         track holds a fixed ratio at any button size. Thinning the bezel
+         widens that ratio to 3.42:1, so the scene viewBox tracks it. */
+      padding: 1.42%;
+      aspect-ratio: 16 / 5;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      isolation: isolate;
+      background: linear-gradient(180deg, #3d3122 0%, #1f1810 46%, #0f0b08 100%);
+      box-shadow:
+        0 1px 0 rgba(255, 236, 200, 0.18) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.65) inset,
+        0 0 0 1px rgba(255, 226, 178, 0.1),
+        0 2px 4px rgba(10, 7, 4, 0.45),
+        0 12px 24px -8px rgba(10, 7, 4, 0.6),
+        0 26px 48px -20px rgba(150, 96, 26, 0.5);
+      transition:
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* specular sheen across the bezel */
+    .cta::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(
+        104deg,
+        rgba(255, 240, 210, 0) 34%,
+        rgba(255, 240, 210, 0.12) 47%,
+        rgba(255, 240, 210, 0) 60%
+      );
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 1px 0 rgba(255, 236, 200, 0.22) inset,
+        0 -1px 0 rgba(0, 0, 0, 0.65) inset,
+        0 0 0 1px rgba(255, 226, 178, 0.15),
+        0 2px 4px rgba(10, 7, 4, 0.45),
+        0 18px 32px -10px rgba(10, 7, 4, 0.62),
+        0 34px 60px -22px rgba(178, 116, 32, 0.62);
+    }
+
+    .cta:hover::after { opacity: 1; }
+    .cta:active { transform: translateY(0); }
+
+    .cta:focus-visible {
+      outline: none;
+      box-shadow:
+        0 1px 0 rgba(255, 236, 200, 0.18) inset,
+        0 0 0 1px rgba(255, 226, 178, 0.1),
+        0 0 0 4px rgba(192, 133, 38, 0.45),
+        0 12px 24px -8px rgba(10, 7, 4, 0.6);
+    }
+
+    /* the street lives inside the track's own clip */
+    .cta__track {
+      position: relative;
+      flex: 1;
+      align-self: stretch;
+      border-radius: 999px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #fdfaf3 0%, #f5efe1 58%, #eae1cd 100%);
+      box-shadow:
+        0 2px 5px rgba(26, 18, 8, 0.26) inset,
+        0 -1px 0 rgba(255, 255, 255, 0.7) inset;
+    }
+
+    .cta__scene {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .cta__label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      transform: translate(-50%, -50%);
+      /* Marcellus SC: classical Roman capitals. It ships in one weight
+         only, so font-weight stays at 400 and the extra weight comes from
+         an outline stroke instead — that dilates the letterforms evenly,
+         where the browser's synthetic bold would smear them sideways.
+         currentColor keeps the stroke in step with the done-state colour. */
+      font-family: "Marcellus SC", "Trajan Pro", "Fraunces", "Iowan Old Style", Georgia, serif;
+      font-size: 17px;
+      font-weight: 400;
+      -webkit-text-stroke: 0.5px currentColor;
+      font-feature-settings: "kern" 1, "liga" 1;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: #241c12;
+      /* letterpress: the label sits on cream, so a light lower edge
+         reads as debossed rather than as a drop shadow */
+      text-shadow: 0 1px 0 rgba(255, 253, 246, 0.95);
+      pointer-events: none;
+      transition:
+        opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* tracking adds a trailing gap after the last glyph; pull it back so
+       the label stays optically centred */
+    .cta__text {
+      letter-spacing: 0.16em;
+      margin-right: -0.16em;
+    }
+
+    .cta__label[data-state="run"] {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.94);
+    }
+
+    .cta__label[data-state="done"] { color: #2f5c37; }
+
+    .cta__check {
+      width: 0;
+      height: 15px;
+      margin-right: 0;
+      overflow: hidden;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 24;
+      stroke-dashoffset: 24;
+      transition:
+        stroke-dashoffset 0.5s ease 0.16s,
+        width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+        margin-right 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .cta__label[data-state="done"] .cta__check {
+      width: 15px;
+      margin-right: 8px;
+      stroke-dashoffset: 0;
+    }
+
+    /* --- scene paint --- */
+    .road__lip { fill: rgba(236, 196, 128, 0.22); }
+    .road__ticks {
+      stroke: rgba(250, 244, 232, 0.3);
+      stroke-width: 1.8;
+      stroke-dasharray: 11 9;
+      stroke-linecap: round;
+    }
+    .shell { stroke: #2a2118; stroke-width: 1.4; stroke-linejoin: round; }
+    .depot {
+      font-family: var(--sans);
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 0.72px;
+      fill: #a2947f;
+    }
+    .tire { fill: #14100b; }
+    .rim { fill: #b9ad9c; }
+    .nave { fill: #1c160f; }
+    .spoke { fill: none; stroke: #6f6558; stroke-width: 1.1; stroke-linecap: round; }
+
+    #boxShadow { transition: opacity 0.3s ease; }
+    #ground, #van, #vanBody, #box, #door, .wheel { will-change: transform; }
+    /* ============ end sign-in button ============ */
+
+    .forgot-wrap { text-align: center; margin-top: 16px; }
+
+    .forgot-link {
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 500;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 1px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .forgot-link:hover {
+      color: var(--amber-deep);
+      border-bottom-color: rgba(154, 106, 24, 0.45);
+    }
+
+    .reset-section {
+      display: none;
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .reset-section h3 {
+      margin: 0 0 4px;
+      text-align: center;
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .btn-ghost {
+      width: 100%;
+      margin-top: 20px;
+      padding: 13px 16px;
+      border: 1px solid #d9cdb8;
+      border-radius: 999px;
+      background: transparent;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: background 0.22s, color 0.22s, border-color 0.22s;
+    }
+
+    .btn-ghost:hover {
+      background: #1e1810;
+      border-color: #1e1810;
+      color: #f7f1e4;
+    }
+
+    .message {
+      margin-top: 18px;
+      min-height: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ok);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cta, .cta__label, .cta__check, .cta::after { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>Welcome Back</h2>
+    <p class="subtitle">Sign in to continue</p>
+
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" required />
+
+      <button class="cta" type="submit" id="signInBtn">
+        <span class="cta__track">
+          <svg class="cta__scene" viewBox="0 0 342 100" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="roadGrad" gradientUnits="userSpaceOnUse" x1="0" y1="86" x2="0" y2="100">
+                <stop offset="0" stop-color="#2d2419" />
+                <stop offset="0.45" stop-color="#1a1410" />
+                <stop offset="1" stop-color="#0f0b08" />
+              </linearGradient>
+
+              <linearGradient id="bodyGrad" gradientUnits="userSpaceOnUse" x1="0" y1="27" x2="0" y2="76">
+                <stop offset="0" stop-color="#fffdf8" />
+                <stop offset="0.52" stop-color="#f7f1e4" />
+                <stop offset="1" stop-color="#e4d9c3" />
+              </linearGradient>
+
+              <linearGradient id="stripeGrad" gradientUnits="userSpaceOnUse" x1="0" y1="64" x2="0" y2="71">
+                <stop offset="0" stop-color="#f7b95c" />
+                <stop offset="1" stop-color="#d4871f" />
+              </linearGradient>
+
+              <linearGradient id="glassGrad" gradientUnits="userSpaceOnUse" x1="88" y1="44" x2="122" y2="56">
+                <stop offset="0" stop-color="#413628" />
+                <stop offset="0.55" stop-color="#1b1610" />
+                <stop offset="1" stop-color="#2c241a" />
+              </linearGradient>
+
+              <linearGradient id="boxGrad" gradientUnits="userSpaceOnUse" x1="0" y1="-9" x2="0" y2="9">
+                <stop offset="0" stop-color="#f0b567" />
+                <stop offset="1" stop-color="#cf8a2e" />
+              </linearGradient>
+
+              <linearGradient id="bayGrad" gradientUnits="userSpaceOnUse" x1="0" y1="29" x2="0" y2="64">
+                <stop offset="0" stop-color="#0d0a07" />
+                <stop offset="0.55" stop-color="#241c14" />
+                <stop offset="1" stop-color="#181209" />
+              </linearGradient>
+
+              <linearGradient id="beamGrad" gradientUnits="userSpaceOnUse" x1="131" y1="0" x2="243" y2="0">
+                <stop offset="0" stop-color="#ffe6a8" stop-opacity="0.6" />
+                <stop offset="0.45" stop-color="#ffe6a8" stop-opacity="0.2" />
+                <stop offset="1" stop-color="#ffe6a8" stop-opacity="0" />
+              </linearGradient>
+
+              <pattern id="slats" width="4" height="3.4" patternUnits="userSpaceOnUse">
+                <rect width="4" height="3.4" fill="#eae4d6" />
+                <rect y="2.5" width="4" height="0.9" fill="#c9c0ad" />
+              </pattern>
+
+              <radialGradient id="blobShadow">
+                <stop offset="0" stop-color="#160f07" stop-opacity="0.42" />
+                <stop offset="0.65" stop-color="#160f07" stop-opacity="0.16" />
+                <stop offset="1" stop-color="#160f07" stop-opacity="0" />
+              </radialGradient>
+
+              <radialGradient id="lampGlow">
+                <stop offset="0" stop-color="#fff4d2" stop-opacity="0.95" />
+                <stop offset="1" stop-color="#fff4d2" stop-opacity="0" />
+              </radialGradient>
+
+              <radialGradient id="tailGlow">
+                <stop offset="0" stop-color="#ff6a45" stop-opacity="0.85" />
+                <stop offset="1" stop-color="#ff6a45" stop-opacity="0" />
+              </radialGradient>
+
+              <radialGradient id="vignette" cx="50%" cy="48%" r="72%">
+                <stop offset="0.5" stop-color="#3a2a12" stop-opacity="0" />
+                <stop offset="1" stop-color="#3a2a12" stop-opacity="0.3" />
+              </radialGradient>
+
+              <filter id="grain" x="0" y="0" width="100%" height="100%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch" />
+                <feColorMatrix
+                  type="matrix"
+                  values="0 0 0 0 0.14  0 0 0 0 0.11  0 0 0 0 0.07  1 0 0 0 0" />
+              </filter>
+
+              <!-- the roll-up door disappears into the top of its own frame -->
+              <clipPath id="bayClip" clipPathUnits="userSpaceOnUse">
+                <rect x="42" y="29" width="40" height="35" rx="2" />
+              </clipPath>
+            </defs>
+
+            <!-- the road and the parcel wait below the frame until pressed -->
+            <g id="ground">
+              <rect fill="url(#roadGrad)" x="0" y="86" width="342" height="14" />
+              <rect class="road__lip" x="0" y="86" width="342" height="0.8" />
+              <line class="road__ticks" x1="0" y1="94" x2="342" y2="94" />
+              <ellipse id="boxShadow" cx="238" cy="86.6" rx="15" ry="3.2" fill="url(#blobShadow)" />
+            </g>
+
+            <g id="van">
+              <ellipse cx="67" cy="86.8" rx="72" ry="4.4" fill="url(#blobShadow)" />
+
+              <g id="vanBody">
+                <rect class="shell" x="4" y="27" width="82" height="49" rx="4" fill="url(#bodyGrad)" />
+                <path
+                  class="shell"
+                  fill="url(#bodyGrad)"
+                  d="M86,76 L86,43 L112,43 L124,55 L128,55 Q131,55 131,58 L131,72 Q131,76 127,76 Z" />
+
+                <!-- cargo bay: a hole in the side, with the door in front of it -->
+                <rect x="42" y="29" width="40" height="35" rx="2" fill="url(#bayGrad)" />
+
+                <!-- once loaded, the parcel sits behind the door -->
+                <g id="boxSlotBay"></g>
+
+                <g clip-path="url(#bayClip)">
+                  <g id="door">
+                    <rect x="42" y="29" width="40" height="35" fill="url(#slats)" />
+                    <rect x="42" y="60.6" width="40" height="3.4" fill="#b3aa96" />
+                    <rect x="42" y="29" width="40" height="1" fill="#fffdf6" opacity="0.5" />
+                  </g>
+                </g>
+                <rect
+                  x="42" y="29" width="40" height="35" rx="2"
+                  fill="none" stroke="#2a2118" stroke-width="1.3" />
+
+                <text class="depot" x="10" y="49">DEPOT</text>
+
+                <rect x="90" y="46" width="16" height="8" rx="1.6" fill="url(#glassGrad)" />
+                <path d="M111.5,46 L111.5,54 L119.5,54 Z" fill="url(#glassGrad)" />
+
+                <rect x="4" y="64" width="126" height="7" fill="url(#stripeGrad)" />
+                <rect x="4" y="64" width="126" height="1" fill="#fff0d2" opacity="0.45" />
+
+                <!-- lamps, dark until switched on -->
+                <rect x="126.4" y="57.4" width="4.6" height="6" rx="1.8" fill="#7d7361" />
+                <rect x="4.2" y="57.4" width="3.4" height="5.2" rx="1.4" fill="#6d5348" />
+
+                <!-- mid-leap the parcel passes on the near side of the van,
+                     so it has to sit above every body detail -->
+                <g id="boxSlotFly"></g>
+
+                <g id="lights" opacity="0">
+                  <path d="M131,60 L243,41 L243,88 Z" fill="url(#beamGrad)" />
+                  <ellipse cx="130" cy="60.4" rx="11" ry="8" fill="url(#lampGlow)" />
+                  <rect x="126.4" y="57.4" width="4.6" height="6" rx="1.8" fill="#fff6dc" />
+                  <ellipse cx="5.9" cy="60" rx="7" ry="5.5" fill="url(#tailGlow)" />
+                  <rect x="4.2" y="57.4" width="3.4" height="5.2" rx="1.4" fill="#ff7a52" />
+                </g>
+              </g>
+
+              <g transform="translate(30 76.5)">
+                <g class="wheel" id="wheelA">
+                  <circle class="tire" r="9.5" />
+                  <circle class="rim" r="4.8" />
+                  <path class="spoke" d="M0,-4.4 V4.4 M-4.4,0 H4.4" />
+                  <circle class="nave" r="1.7" />
+                </g>
+              </g>
+              <g transform="translate(110 76.5)">
+                <g class="wheel" id="wheelB">
+                  <circle class="tire" r="9.5" />
+                  <circle class="rim" r="4.8" />
+                  <path class="spoke" d="M0,-4.4 V4.4 M-4.4,0 H4.4" />
+                  <circle class="nave" r="1.7" />
+                </g>
+              </g>
+            </g>
+
+            <!-- parked on the road until the hop hands it to the van -->
+            <g id="boxHome">
+              <g id="box">
+                <rect x="-9" y="-9" width="18" height="18" rx="2.4" fill="url(#boxGrad)" />
+                <rect x="-9" y="-1.2" width="18" height="2.4" fill="#a96b1c" opacity="0.75" />
+                <rect x="-1.2" y="-9" width="2.4" height="18" fill="#a96b1c" opacity="0.75" />
+                <path d="M-9,-6.6 h18" stroke="#fff0d2" stroke-opacity="0.4" stroke-width="1.2" />
+              </g>
+            </g>
+
+            <rect x="0" y="0" width="342" height="100" fill="url(#vignette)" />
+            <rect x="0" y="0" width="342" height="100" filter="url(#grain)" opacity="0.17" />
+          </svg>
+        </span>
+
+        <span class="cta__label" id="ctaLabel" data-state="idle">
+          <svg class="cta__check" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12.6 L9.4 18 L20 6.4" />
+          </svg>
+          <span class="cta__text" id="ctaText">Order Now</span>
+        </span>
+      </button>
+
+      <div class="forgot-wrap">
+        <a href="#" id="forgotPasswordLink" class="forgot-link">Forgot password?</a>
+      </div>
+    </form>
+
+    <div id="resetSection" class="reset-section">
+      <h3>Reset Password</h3>
+
+      <form id="resetForm">
+        <label for="resetEmail">Enter your email</label>
+        <input type="email" id="resetEmail" name="resetEmail" required />
+
+        <button class="btn-ghost" type="submit">Send Reset Link</button>
+      </form>
+    </div>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+  const loginForm = document.getElementById("loginForm");
+  const resetForm = document.getElementById("resetForm");
+  const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+  const resetSection = document.getElementById("resetSection");
+  const message = document.getElementById("message");
+
+  forgotPasswordLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    resetSection.style.display = "block";
+    message.textContent = "Enter your email below to reset your password.";
+    message.style.color = "#9a6a18";
+    document.getElementById("resetEmail").focus();
+  });
+
+  loginForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (email && password) {
+      message.textContent = "";
+      Depot.play();
+    } else {
+      message.textContent = "Please fill in all fields.";
+      message.style.color = "#a8412f";
+    }
+  });
+
+  resetForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const resetEmail = document.getElementById("resetEmail").value.trim();
+
+    if (!resetEmail) {
+      message.textContent = "Please enter your email.";
+      message.style.color = "#a8412f";
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3001/api/password-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        message.textContent = data.message;
+        message.style.color = "#4a7c52";
+        resetSection.style.display = "none";
+        resetForm.reset();
+      } else {
+        message.textContent = data.message || "Something went wrong.";
+        message.style.color = "#a8412f";
+      }
+    } catch (error) {
+      message.textContent = "Server error. Please try again.";
+      message.style.color = "#a8412f";
+    }
+  });
+
+  // ================= premium "depot van" button =================
+  // One rAF timeline drives every part, so the van, its wheels, its
+  // suspension and its cargo can never drift out of sync.
+  const Depot = (function () {
+    const label = document.getElementById("ctaLabel");
+    const text = document.getElementById("ctaText");
+    const btn = document.getElementById("signInBtn");
+    const ground = document.getElementById("ground");
+    const van = document.getElementById("van");
+    const body = document.getElementById("vanBody");
+    const door = document.getElementById("door");
+    const lights = document.getElementById("lights");
+    const box = document.getElementById("box");
+    const boxHome = document.getElementById("boxHome");
+    const boxSlotFly = document.getElementById("boxSlotFly");
+    const boxSlotBay = document.getElementById("boxSlotBay");
+    const boxShadow = document.getElementById("boxShadow");
+    const wheels = [
+      document.getElementById("wheelA"),
+      document.getElementById("wheelB"),
+    ];
+
+    // --- geometry (SVG user units) ---
+    const VX_START = -150;  // van fully clear of the left edge
+    const VX_STOP = 94;     // parked, cargo door facing the parcel
+    const VX_END = 380;     // fully clear of the right edge
+    const GY_HIDE = 32;     // road + parcel parked below the frame
+    const DOOR_H = 36;      // full travel of the roll-up door
+
+    const WHEEL_R = 9.5;
+    const DEG_PER_UNIT = 180 / (Math.PI * WHEEL_R); // rolls, never slides
+
+    const BOX_ROAD = { x: 144, y: 77 };  // on the road, van-local
+    const BOX_APEX = { x: 62, y: 6 };    // top of the leap, above the bay
+    const BOX_BAY = { x: 62, y: 50 };    // settled inside the cargo bay
+    const HOP_SPLIT = 0.62;              // leap ends / drop begins
+
+    // --- score (ms from the press) ---
+    const GROUND_UP = [0, 400];
+    const DRIVE_IN = [380, 1020];
+    const DOOR_OPEN = [1520, 340];
+    const HOP = [1900, 560];
+    const DOOR_SHUT = [2600, 340];
+    const LIGHTS = [3000, 260];
+    const DRIVE_OUT = [3160, 940];
+    const GROUND_DOWN = [4100, 380];
+    const DONE_AT = 4160;
+    const RESET_AT = 5700;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Newton-Raphson cubic-bezier solver, so these curves read exactly like
+    // their CSS equivalents.
+    function bezier(x1, y1, x2, y2) {
+      const A = (a, b) => 1 - 3 * b + 3 * a;
+      const B = (a, b) => 3 * b - 6 * a;
+      const C = (a) => 3 * a;
+      const at = (t, a, b) => ((A(a, b) * t + B(a, b)) * t + C(a)) * t;
+      const dx = (t, a, b) => 3 * A(a, b) * t * t + 2 * B(a, b) * t + C(a);
+      return function (x) {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        let t = x;
+        for (let i = 0; i < 6; i++) {
+          const d = dx(t, x1, x2);
+          if (Math.abs(d) < 1e-6) break;
+          t -= (at(t, x1, x2) - x) / d;
+        }
+        return at(t, y1, y2);
+      };
+    }
+
+    const easeSlideUp = bezier(0.16, 1, 0.3, 1);
+    const easeSlideDown = bezier(0.7, 0, 0.84, 0);
+    const easeArrive = bezier(0.08, 0.62, 0.16, 1);  // enters fast, brakes long
+    const easeDepart = bezier(0.55, 0, 0.86, 0.4);   // leans in, then pulls away
+    const easeDoorUp = bezier(0.2, 0.9, 0.25, 1);
+    const easeDoorDown = bezier(0.55, 0, 0.35, 1);
+    const easeLamp = bezier(0.3, 0, 0.2, 1);
+
+    const outQuad = (p) => 1 - (1 - p) * (1 - p);
+    const outQuint = (p) => 1 - Math.pow(1 - p, 5);
+    const inQuad = (p) => p * p;
+
+    function seg(t, span, from, to, ease) {
+      const p = (t - span[0]) / span[1];
+      if (p <= 0) return from;
+      if (p >= 1) return to;
+      return from + (to - from) * ease(p);
+    }
+
+    // Sampled straight off the timeline rather than off the previous frame,
+    // so frame jitter can never surface as suspension wobble.
+    function vxAt(t) {
+      if (t >= DRIVE_OUT[0]) return seg(t, DRIVE_OUT, VX_STOP, VX_END, easeDepart);
+      return seg(t, DRIVE_IN, VX_START, VX_STOP, easeArrive);
+    }
+
+    function gyAt(t) {
+      if (t >= GROUND_DOWN[0]) return seg(t, GROUND_DOWN, 0, GY_HIDE, easeSlideDown);
+      return seg(t, GROUND_UP, GY_HIDE, 0, easeSlideUp);
+    }
+
+    function doorAt(t) {
+      if (t >= DOOR_SHUT[0]) return seg(t, DOOR_SHUT, -DOOR_H, 0, easeDoorDown);
+      return seg(t, DOOR_OPEN, 0, -DOOR_H, easeDoorUp);
+    }
+
+    // Leap, then drop. Both halves reach zero velocity at the apex, so the
+    // two curves meet without a kink.
+    function hopAt(p) {
+      if (p <= HOP_SPLIT) {
+        const a = p / HOP_SPLIT;
+        return {
+          x: BOX_ROAD.x + (BOX_APEX.x - BOX_ROAD.x) * outQuad(a),
+          y: BOX_ROAD.y + (BOX_APEX.y - BOX_ROAD.y) * outQuint(a),
+        };
+      }
+      const b = (p - HOP_SPLIT) / (1 - HOP_SPLIT);
+      return {
+        x: BOX_APEX.x,
+        y: BOX_APEX.y + (BOX_BAY.y - BOX_APEX.y) * inQuad(b),
+      };
+    }
+
+    let raf = 0;
+    let t0 = 0;
+    let playing = false;
+    let aboard = false;
+    let landedAt = -1;
+    let slammed = false;
+    let pitch = 0, pitchV = 0, dip = 0, dipV = 0;
+
+    function setBox(x, y, rot, sx, sy) {
+      box.setAttribute(
+        "transform",
+        `translate(${x} ${y}) rotate(${rot}) scale(${sx} ${sy})`
+      );
+    }
+
+    function idle() {
+      cancelAnimationFrame(raf);
+      playing = false;
+      aboard = false;
+      slammed = false;
+      landedAt = -1;
+      pitch = pitchV = dip = dipV = 0;
+
+      if (box.parentNode !== boxHome) boxHome.appendChild(box);
+      setBox(VX_STOP + BOX_ROAD.x, BOX_ROAD.y, 0, 1, 1);
+      boxShadow.style.opacity = "1";
+
+      ground.setAttribute("transform", `translate(0 ${GY_HIDE})`);
+      boxHome.setAttribute("transform", `translate(0 ${GY_HIDE})`);
+      van.setAttribute("transform", `translate(${VX_START} 0)`);
+      body.setAttribute("transform", "translate(0 0) rotate(0)");
+      door.setAttribute("transform", "translate(0 0)");
+      lights.setAttribute("opacity", "0");
+      wheels.forEach((w) => w.setAttribute("transform", "rotate(0)"));
+
+      text.textContent = "Order Now";
+      label.dataset.state = "idle";
+    }
+
+    function frame(now) {
+      const t = now - t0;
+
+      // --- road deck, and the parcel riding on it ---
+      const gy = gyAt(t).toFixed(3);
+      ground.setAttribute("transform", `translate(0 ${gy})`);
+      if (!aboard) boxHome.setAttribute("transform", `translate(0 ${gy})`);
+
+      // --- van, with wheels rolled from that exact position ---
+      const vx = vxAt(t);
+      van.setAttribute("transform", `translate(${vx.toFixed(3)} 0)`);
+      const spin = (vx * DEG_PER_UNIT).toFixed(3);
+      wheels.forEach((w) => w.setAttribute("transform", `rotate(${spin})`));
+
+      // --- roll-up cargo door ---
+      const dy = doorAt(t);
+      door.setAttribute("transform", `translate(0 ${dy.toFixed(3)})`);
+      if (!slammed && t >= DOOR_SHUT[0] + DOOR_SHUT[1]) {
+        slammed = true;
+        dipV += 0.4; // the door lands
+      }
+
+      // --- headlights ---
+      lights.setAttribute("opacity", seg(t, LIGHTS, 0, 1, easeLamp).toFixed(3));
+
+      // --- suspension: pitch comes off the timeline's 2nd derivative, so
+      //     braking dips the nose and pulling away lifts it, for free ---
+      const h = 16;
+      const accel = (vxAt(t + h) - 2 * vx + vxAt(t - h)) / (h * h);
+      const target = Math.max(-3, Math.min(3, -accel * 2600));
+      pitchV += (target - pitch) * 0.14 - pitchV * 0.3;
+      pitch += pitchV;
+      dipV += (0 - dip) * 0.16 - dipV * 0.26;
+      dip += dipV;
+      body.setAttribute(
+        "transform",
+        `translate(0 ${dip.toFixed(3)}) rotate(${pitch.toFixed(3)})`
+      );
+
+      // --- the parcel leaps in while the van stands still ---
+      const hp = (t - HOP[0]) / HOP[1];
+      if (hp > 0 && !aboard) {
+        aboard = true;
+        boxSlotFly.appendChild(box); // hand it from the road to the van
+        boxShadow.style.opacity = "0";
+      }
+      if (aboard && hp < 1) {
+        const p = Math.max(0, hp);
+        const at = hopAt(p);
+        setBox(at.x, at.y, -20 * Math.sin(p * Math.PI), 1, 1);
+      } else if (aboard && landedAt < 0) {
+        landedAt = t;
+        dipV += 0.8; // the van takes the weight
+        // Now fully inside the bay, where both slots render identically —
+        // so this drop behind the door is invisible, and the door can
+        // close over the parcel.
+        boxSlotBay.appendChild(box);
+      }
+      if (landedAt >= 0) {
+        const k = Math.exp(-(t - landedAt) / 90) * Math.cos((t - landedAt) / 38);
+        setBox(BOX_BAY.x, BOX_BAY.y, 0, 1 + 0.16 * k, 1 - 0.16 * k);
+      }
+
+      if (t >= DONE_AT && label.dataset.state !== "done") {
+        text.textContent = "Order Completed";
+        label.dataset.state = "done";
+      }
+
+      if (t < RESET_AT) {
+        raf = requestAnimationFrame(frame);
+      } else {
+        label.dataset.state = "run";
+        setTimeout(idle, 340);
+      }
+    }
+
+    function play() {
+      if (playing) return;
+
+      if (reduce) {
+        playing = true;
+        text.textContent = "Order Completed";
+        label.dataset.state = "done";
+        setTimeout(idle, 1800);
+        return;
+      }
+
+      idle();
+      playing = true;
+      label.dataset.state = "run";
+      t0 = performance.now();
+      raf = requestAnimationFrame(frame);
+    }
+
+    idle();
+    return { play };
+  })();
+</script>
+</body>
+</html>
